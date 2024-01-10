@@ -1,8 +1,8 @@
 
 import Foundation
 
-public class SwiftPoller<T:Codable> {
-    public typealias PollerClosure = ()async -> T?
+public class SwiftPoller<T: Codable> {
+    public typealias PollerClosure = () async -> T?
     public typealias PollerResult = Result<T, PollerError>
     private var poller: PollerClosure
     private var timeOut: TimeInterval
@@ -34,7 +34,7 @@ public class SwiftPoller<T:Codable> {
                 try? await Task.sleep(nanoseconds: timeToNanoSecs(frequency))
                 continue
             }
-            
+
             return .success(item)
         }
 
@@ -53,6 +53,4 @@ public extension SwiftPoller {
         }
         return Date().timeIntervalSince(startTime)
     }
-
-   
 }

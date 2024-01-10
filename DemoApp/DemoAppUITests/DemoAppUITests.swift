@@ -38,5 +38,3 @@ class DemoAppUITests: XCTestCase {
         }
     }
 }
-
-

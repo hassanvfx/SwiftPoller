@@ -6,84 +6,78 @@
 //
 
 @testable import DemoApp
-import XCTest
 import SwiftPoller
+import XCTest
 
-struct MockResult: Codable,Equatable {
+struct MockResult: Codable, Equatable {
     var data: String
 }
-
 
 class DemoAppTests: XCTestCase {
     func testPollerRespondsAfterThreeCalls() async {
         // Arrange
         var pollCount = 0
         let expectedResult = MockResult(data: "Success")
-        
-        
-        let poller = SwiftPoller<MockResult>{
+
+        let poller = SwiftPoller<MockResult> {
             pollCount += 1
             return pollCount == 3 ? expectedResult : nil
         }
-        
-        
+
         // Act
         let result = await poller.startPolling()
-        
+
         // Assert
         switch result {
-        case .success(let data):
+        case let .success(data):
             XCTAssertEqual(data, expectedResult, "Poller did not return expected result after three calls")
         default:
             XCTFail("Poller did not complete successfully")
         }
     }
-    
+
     func testPollerTimeOut() async {
         // Arrange
         var pollCount = 0
         let expectedResult = MockResult(data: "Success")
-        
-        
-        let poller = SwiftPoller<MockResult>(frequency:1,timeOut: 3){
+
+        let poller = SwiftPoller<MockResult>(frequency: 1, timeOut: 3) {
             pollCount += 1
             return pollCount == 40 ? expectedResult : nil
         }
-        
-        
+
         // Act
         let result = await poller.startPolling()
-        
+
         // Assert
         switch result {
         case .success:
             XCTFail("Poller did call unexpected result")
         default:
-            XCTAssertTrue(true,"Poller did not complete as expected")
+            XCTAssertTrue(true, "Poller did not complete as expected")
         }
     }
 }
-class SwiftPollerQueueTests: XCTestCase {
 
+class SwiftPollerQueueTests: XCTestCase {
     func testConcurrency() async {
         let expectation = XCTestExpectation(description: "Concurrent processing of pollers")
         expectation.expectedFulfillmentCount = 3 // Number of pollers
 
         // Mock Poller
         func createPoller(completion: @escaping () -> Void) -> SwiftPoller<MockResult> {
-            return SwiftPoller<MockResult>(frequency:1,timeOut:10)  {
+            return SwiftPoller<MockResult>(frequency: 1, timeOut: 10) {
                 completion()
                 return MockResult(data: "Success") // Replace with actual result
             }
         }
 
         // Create SwiftPollerQueue with multiple workers
-        let queue = SwiftPollerQueue<MockResult>(workers: 3){ item in
-            
+        let queue = SwiftPollerQueue<MockResult>(workers: 3) { _ in
         }
 
         // Add pollers
-        for _ in 1...3 {
+        for _ in 1 ... 3 {
             await queue.add(poller: createPoller {
                 expectation.fulfill()
             })
@@ -96,7 +90,7 @@ class SwiftPollerQueueTests: XCTestCase {
 
         await fulfillment(of: [expectation], timeout: 10.0)
     }
-    
+
     func testCompletion() async {
         let expectation = XCTestExpectation(description: "Completion of all pollers")
 
@@ -104,8 +98,8 @@ class SwiftPollerQueueTests: XCTestCase {
         let totalPollers = 3
 
         // Mock Poller
-        func createPoller() -> SwiftPoller<MockResult>{
-            return SwiftPoller<MockResult>(frequency:1,timeOut:10)  {
+        func createPoller() -> SwiftPoller<MockResult> {
+            return SwiftPoller<MockResult>(frequency: 1, timeOut: 10) {
                 processedPollers += 1
                 if processedPollers == totalPollers {
                     expectation.fulfill()
@@ -115,12 +109,11 @@ class SwiftPollerQueueTests: XCTestCase {
         }
 
         // Create SwiftPollerQueue
-        let queue = SwiftPollerQueue<MockResult>(workers: 1){ item in
-            
+        let queue = SwiftPollerQueue<MockResult>(workers: 1) { _ in
         }
 
         // Add pollers
-        for _ in 1...totalPollers {
+        for _ in 1 ... totalPollers {
             await queue.add(poller: createPoller())
         }
 
@@ -134,7 +127,6 @@ class SwiftPollerQueueTests: XCTestCase {
 }
 
 class SwiftPollerQueueFIFOTests: XCTestCase {
-
     func testFIFOOrder() async {
         let expectation = XCTestExpectation(description: "FIFO processing of pollers")
         expectation.expectedFulfillmentCount = 1
@@ -173,8 +165,7 @@ class SwiftPollerQueueFIFOTests: XCTestCase {
         let expectedResults = pollerOrder.map { MockResult(data: "Result \($0)") }
         XCTAssertEqual(results, expectedResults, "Pollers did not complete in FIFO order")
     }
-    
-    
+
     func testFIFOOrderMultipleWorkers() async {
         let expectation = XCTestExpectation(description: "FIFO processing of pollers")
         expectation.expectedFulfillmentCount = 1
@@ -199,7 +190,7 @@ class SwiftPollerQueueFIFOTests: XCTestCase {
 
         // Add pollers in the specified order
         for order in pollerOrder {
-            await queue.add(id:"\(order)",poller: createPoller(order: order))
+            await queue.add(id: "\(order)", poller: createPoller(order: order))
         }
 
         // Start queue
